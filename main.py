@@ -3,7 +3,7 @@ import cv2
 import face_recognition
 from os import path, listdir
 from sklearn import svm
-from datetime import time
+import time
 
 # Get a reference to webcam 
 video_capture = cv2.VideoCapture(0)
