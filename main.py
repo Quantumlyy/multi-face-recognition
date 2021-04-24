@@ -3,6 +3,7 @@ import cv2
 import face_recognition
 from os import path, listdir
 from sklearn import svm
+from datetime import time
 
 # Get a reference to webcam 
 video_capture = cv2.VideoCapture(0)
@@ -36,29 +37,32 @@ for person in faces_train_dir:
         else:
             print(person + "/" + person_img + " can't be used for training")
 
-print(encodings, names)
-
 clf = svm.SVC(gamma='scale')
 clf.fit(encodings, names)
 
+frame_rate = 2
+prev = 0
+
 while True:
+    time_elapsed = time.time() - prev
     # Grab a single frame of video
     ret, frame = video_capture.read()
+    if time_elapsed > 1. / frame_rate:
+        prev = time.time()
+        # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
+        rgb_frame = frame[:, :, ::-1]
 
-    # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
-    rgb_frame = frame[:, :, ::-1]
+        # Find all the faces in the current frame of video
+        face_locations = face_recognition.face_locations(rgb_frame)
 
-    # Find all the faces in the current frame of video
-    face_locations = face_recognition.face_locations(rgb_frame)
+        no = len(face_locations)
 
-    no = len(face_locations)
-
-    for i in range(no):
-        top, right, bottom, left = face_locations[i]
-        test_image_enc = face_recognition.face_encodings(rgb_frame, face_locations)[i]
-        cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
-        name = clf.predict([test_image_enc])
-        cv2.putText(frame, *name, (right, bottom), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 2)
+        for i in range(no):
+            top, right, bottom, left = face_locations[i]
+            test_image_enc = face_recognition.face_encodings(rgb_frame, face_locations)[i]
+            cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
+            name = clf.predict([test_image_enc])
+            cv2.putText(frame, *name, (right, bottom), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 2)
 
     # Display the resulting image
     cv2.imshow('Video', frame)
